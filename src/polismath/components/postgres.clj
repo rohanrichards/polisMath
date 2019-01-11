@@ -37,7 +37,18 @@
                   :sslfactory "org.postgresql.ssl.NonValidatingFactory"}]
     (kdb/postgres settings)))
 
-
+(defn docker-db-spec
+  "Create a korma db-spec given a docker db-uri"
+  [db-uri]
+  (let [[_ user password host port db] (re-matches #"postgres://(?:(.+):(.*)@)?([^:]+)(?::(\d+))?/(.+)" db-uri)
+        settings {:user user
+                  :password password
+                  :host host
+                  :port (or port 80)
+                  :db db
+                  :ssl false
+                  }]
+    (kdb/postgres settings)))
 
 ;; The executor function for honeysql queries (which we'll be rewriting everything in over time)
 
@@ -55,7 +66,7 @@
     (log/info ">> Starting Postgres component")
     (let [database-url (-> config :database :url)]
       (assert database-url "Missing database url. Make sure to set env variables.")
-      (assoc component :db-spec (heroku-db-spec database-url))))
+      (assoc component :db-spec (docker-db-spec database-url))))
   (stop [component]
     (log/info "<< Stopping Postgres component")
     (assoc component :db-spec nil)))
@@ -497,5 +508,3 @@
   :endcomment)
 
 :ok
-
-
